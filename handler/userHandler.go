@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 	"user-api/config"
 	"user-api/domain"
 
@@ -31,7 +32,7 @@ func UserHandlerFunc(r *gin.RouterGroup, user domain.UserEntity) {
 
 	r.POST("login", handler.Login)
 
-	r.Use(authMiddleware)
+	// r.Use(authMiddleware)
 
 	r.GET("/user", handler.GetUser)
 	r.POST("/user", handler.CreateUser)
@@ -47,7 +48,7 @@ func authMiddleware(c *gin.Context) {
 	token, err := jwt.Parse(tokenString.token, func(token *jwt.Token) (interface{}, error) {
 		// Don't forget to validate the alg is what you expect:
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["token"])
 		}
 
 		// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
@@ -56,6 +57,7 @@ func authMiddleware(c *gin.Context) {
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 		fmt.Println(claims["foo"], claims["nbf"])
+		c.Next()
 	} else {
 		fmt.Println(err)
 	}
@@ -64,9 +66,22 @@ func authMiddleware(c *gin.Context) {
 // Login ...
 func (u *UserHandler) Login(c *gin.Context) {
 	var user domain.User
-	u.Conn.Where("username = ? AND password = ?", c.PostForm("username"), c.PostForm("password")).Find(&user)
+	isLogin := u.Conn.Where("username = ? AND password = ?", c.PostForm("username"), c.PostForm("password")).Find(&user)
 
-	sign := jwt.New(jwt.GetSigningMethod("HS256"))
+	if isLogin == nil {
+		c.JSON(200, gin.H{
+			"message": "error",
+		})
+
+		c.Abort()
+		return
+	}
+
+	sign := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"foo": "bar",
+		"nbf": time.Date(2015, 10, 10, 12, 0, 0, 0, time.UTC).Unix(),
+	})
+	// sign := jwt.New(jwt.GetSigningMethod("HS256"))
 	token, error := sign.SignedString([]byte("secret"))
 	if error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -74,6 +89,7 @@ func (u *UserHandler) Login(c *gin.Context) {
 		})
 		c.Abort()
 	}
+
 	c.JSON(200, gin.H{
 		"token": token,
 	})
