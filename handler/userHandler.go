@@ -1,12 +1,13 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"user-api/config"
 	"user-api/domain"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -17,10 +18,8 @@ type UserHandler struct {
 	Conn       *gorm.DB
 }
 
-// Credential ...
-type Credential struct {
-	Username string
-	Password string
+type requestHeader struct {
+	token string
 }
 
 // UserHandlerFunc ...
@@ -30,11 +29,36 @@ func UserHandlerFunc(r *gin.RouterGroup, user domain.UserEntity) {
 		Conn:       config.Connect(),
 	}
 
+	r.POST("login", handler.Login)
+
+	r.Use(authMiddleware)
+
 	r.GET("/user", handler.GetUser)
 	r.POST("/user", handler.CreateUser)
 	r.PUT("/user/:id", handler.UpdateUser)
 	r.DELETE("/user/:id", handler.DeleteUser)
-	r.POST("login", handler.Login)
+}
+
+func authMiddleware(c *gin.Context) {
+	tokenString := requestHeader{}
+	if err := c.ShouldBindHeader(&tokenString); err != nil {
+		c.JSON(200, err)
+	}
+	token, err := jwt.Parse(tokenString.token, func(token *jwt.Token) (interface{}, error) {
+		// Don't forget to validate the alg is what you expect:
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+		}
+
+		// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
+		return []byte("ilham"), nil
+	})
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		fmt.Println(claims["foo"], claims["nbf"])
+	} else {
+		fmt.Println(err)
+	}
 }
 
 // Login ...
