@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"time"
 	"user-api/config"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"gorm.io/gorm"
 )
 
@@ -40,13 +42,14 @@ func UserHandlerFunc(r *gin.RouterGroup, user domain.UserEntity) {
 }
 
 func isAuthorized(c *gin.Context) {
+	godotenv.Load()
 	if c.Request.Header["Token"] != nil {
 
 		token, err := jwt.Parse(c.Request.Header["Token"][0], func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("There was an error")
 			}
-			return []byte("captainjacksparrowsayshi"), nil
+			return []byte(os.Getenv("JWT_SECRET")), nil
 		})
 
 		if err != nil {
@@ -74,14 +77,15 @@ func isAuthorized(c *gin.Context) {
 
 // GenerateJWT ...
 func GenerateJWT(user string, c *gin.Context) {
+	godotenv.Load()
 	token := jwt.New(jwt.SigningMethodHS256)
 	claims := token.Claims.(jwt.MapClaims)
 
 	claims["authorized"] = true
-	claims["client"] = "Elliot Forbes"
+	claims["client"] = c.PostForm("username")
 	claims["exp"] = time.Now().Add(time.Minute * 30).Unix()
 
-	tokenString, err := token.SignedString([]byte("captainjacksparrowsayshi"))
+	tokenString, err := token.SignedString([]byte(os.Getenv("JWT_SECRET")))
 
 	if err != nil {
 		// fmt.Errorf("Something Went Wrong: %s", err.Error())
@@ -124,6 +128,23 @@ func (u *UserHandler) GetUser(c *gin.Context) {
 // CreateUser ...
 func (u *UserHandler) CreateUser(c *gin.Context) {
 	file, _ := c.FormFile("foto")
+
+	// isValidImage := helper.MimeFromIncipit([]byte(file))
+
+	// if isValidIMage == "" {
+	// 	c.JSON(201, gin.H{
+	// 		"message": "error",
+	// 	})
+	// 	c.Abort()
+	// 	return
+	// }
+
+	var k domain.User
+	if err := c.ShouldBind(&k); err != nil {
+		c.JSON(http.StatusBadRequest, err.Error())
+		c.Abort()
+		return
+	}
 
 	// Set Folder untuk menyimpan filenya
 	path := "photos/" + file.Filename
