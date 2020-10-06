@@ -2,7 +2,6 @@ package handler
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"time"
 	"user-api/config"
@@ -139,12 +138,12 @@ func (u *UserHandler) CreateUser(c *gin.Context) {
 	// 	return
 	// }
 
-	var k domain.User
-	if err := c.ShouldBind(&k); err != nil {
-		c.JSON(http.StatusBadRequest, err.Error())
-		c.Abort()
-		return
-	}
+	// var k domain.User
+	// if err := c.ShouldBind(&k); err != nil {
+	// 	c.JSON(http.StatusBadRequest, err.Error())
+	// 	c.Abort()
+	// 	return
+	// }
 
 	// Set Folder untuk menyimpan filenya
 	path := "photos/" + file.Filename
