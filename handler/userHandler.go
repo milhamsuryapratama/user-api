@@ -132,7 +132,15 @@ func (u *UserHandler) GetUser(c *gin.Context) {
 
 // CreateUser ...
 func (u *UserHandler) CreateUser(c *gin.Context) {
-	file, _ := c.FormFile("foto")
+	file, null := c.FormFile("foto")
+
+	if null != nil {
+		c.JSON(400, gin.H{
+			"message": "Images must been added",
+		})
+		c.Abort()
+		return
+	}
 
 	var isImages bool = helper.ImageValidation(file.Header.Get("Content-Type"))
 
@@ -205,7 +213,15 @@ func (u *UserHandler) UpdateUser(c *gin.Context) {
 		return
 	}
 
-	file, _ := c.FormFile("foto")
+	file, null := c.FormFile("foto")
+
+	if null != nil {
+		c.JSON(400, gin.H{
+			"message": "Images must been added",
+		})
+		c.Abort()
+		return
+	}
 
 	var isImages bool = helper.ImageValidation(file.Header.Get("Content-Type"))
 
