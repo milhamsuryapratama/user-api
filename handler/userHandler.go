@@ -8,6 +8,7 @@ import (
 	"time"
 	"user-api/config"
 	"user-api/domain"
+	"user-api/helper"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
@@ -133,6 +134,18 @@ func (u *UserHandler) GetUser(c *gin.Context) {
 func (u *UserHandler) CreateUser(c *gin.Context) {
 	file, _ := c.FormFile("foto")
 
+	var isImages bool = helper.ImageValidation(file.Header.Get("Content-Type"))
+
+	// fmt.Println(file.Header.Get("Content-Type"))
+	// fmt.Println(isImages)
+
+	if !isImages {
+		c.JSON(400, gin.H{
+			"message": "Images not valid",
+		})
+		c.Abort()
+		return
+	}
 	// isValidImage := helper.MimeFromIncipit(file.Filename)
 
 	// if isValidImage == "" {
@@ -193,6 +206,19 @@ func (u *UserHandler) UpdateUser(c *gin.Context) {
 	}
 
 	file, _ := c.FormFile("foto")
+
+	var isImages bool = helper.ImageValidation(file.Header.Get("Content-Type"))
+
+	// fmt.Println(file.Header.Get("Content-Type"))
+	// fmt.Println(isImages)
+
+	if !isImages {
+		c.JSON(400, gin.H{
+			"message": "Images not valid",
+		})
+		c.Abort()
+		return
+	}
 
 	// Set Folder untuk menyimpan filenya
 	path := "photos/" + file.Filename
