@@ -9,6 +9,7 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/joho/godotenv"
 	"gorm.io/gorm"
 )
@@ -128,10 +129,10 @@ func (u *UserHandler) GetUser(c *gin.Context) {
 func (u *UserHandler) CreateUser(c *gin.Context) {
 	file, _ := c.FormFile("foto")
 
-	// isValidImage := helper.MimeFromIncipit([]byte(file))
+	// isValidImage := helper.MimeFromIncipit(file.Filename)
 
-	// if isValidIMage == "" {
-	// 	c.JSON(201, gin.H{
+	// if isValidImage == "" {
+	// 	c.JSON(400, gin.H{
 	// 		"message": "error",
 	// 	})
 	// 	c.Abort()
@@ -153,6 +154,16 @@ func (u *UserHandler) CreateUser(c *gin.Context) {
 		Username:    c.PostForm("username"),
 		Password:    c.PostForm("password"),
 		Foto:        file.Filename,
+	}
+
+	errs := validator.New().Struct(user)
+	if errs != nil {
+		c.JSON(400, gin.H{
+			"error": errs.Error(),
+		})
+
+		c.Abort()
+		return
 	}
 
 	c.SaveUploadedFile(file, path)
@@ -184,6 +195,16 @@ func (u *UserHandler) UpdateUser(c *gin.Context) {
 		Username:    c.PostForm("username"),
 		Password:    c.PostForm("password"),
 		Foto:        file.Filename,
+	}
+
+	errs := validator.New().Struct(user)
+	if errs != nil {
+		c.JSON(400, gin.H{
+			"error": errs.Error(),
+		})
+
+		c.Abort()
+		return
 	}
 
 	oldFile := "photos/" + oldUser.Foto

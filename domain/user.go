@@ -9,10 +9,10 @@ import (
 // User ...
 type User struct {
 	gorm.Model
-	Username    string
-	Password    string
-	NamaLengkap string
-	Foto        string
+	Username    string `tag:"username" json:"username" form:"username" validate:"min=3"`
+	Password    string `tag:"password" json:"password" form:"password" validate:"min=6"`
+	NamaLengkap string `tag:"nama_lengkap" json:"nama_lengkap" form:"nama_lengkap" validate:"min=3"`
+	Foto        string `tag:"foto" json:"foto" form:"foto"`
 }
 
 // UserEntity ...
