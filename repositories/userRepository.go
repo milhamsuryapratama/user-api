@@ -45,7 +45,10 @@ func (r *UserRepository) Update(id string, usr domain.User) (user domain.User, e
 // Delete ...
 func (r *UserRepository) Delete(id string) (user domain.User, err error) {
 	var usr domain.User
-	r.Conn.Delete(&usr, id)
+	r.Conn.First(&usr, id)
+	if usr.NamaLengkap != "" {
+		r.Conn.Delete(&usr, id)
+	}
 	return usr, nil
 }
 

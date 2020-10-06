@@ -193,6 +193,14 @@ func (u *UserHandler) UpdateUser(c *gin.Context) {
 // DeleteUser ...
 func (u *UserHandler) DeleteUser(c *gin.Context) {
 	isDeleted, _ := u.UserEntity.Delete(c.Param("id"))
+	if isDeleted.NamaLengkap == "" {
+		c.JSON(400, gin.H{
+			"message": "User not found",
+		})
+		c.Abort()
+		return
+	}
+
 	c.JSON(200, gin.H{
 		"data": isDeleted,
 	})
