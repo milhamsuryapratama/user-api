@@ -166,6 +166,13 @@ func (u *UserHandler) CreateUser(c *gin.Context) {
 // UpdateUser ...
 func (u *UserHandler) UpdateUser(c *gin.Context) {
 	oldUser, _ := u.UserEntity.Show(c.Param("id"))
+	if oldUser.NamaLengkap == "" {
+		c.JSON(400, gin.H{
+			"message": "User not found",
+		})
+		c.Abort()
+		return
+	}
 
 	file, _ := c.FormFile("foto")
 
