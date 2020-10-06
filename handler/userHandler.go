@@ -2,7 +2,6 @@ package handler
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"time"
 	"user-api/config"
@@ -32,67 +31,86 @@ func UserHandlerFunc(r *gin.RouterGroup, user domain.UserEntity) {
 
 	r.POST("login", handler.Login)
 
-	// r.Use(authMiddleware)
+	// r.Use(isAuthorized)
 
-	r.GET("/user", handler.GetUser)
-	r.POST("/user", handler.CreateUser)
-	r.PUT("/user/:id", handler.UpdateUser)
-	r.DELETE("/user/:id", handler.DeleteUser)
+	r.GET("/user", isAuthorized, handler.GetUser)
+	r.POST("/user", isAuthorized, handler.CreateUser)
+	r.PUT("/user/:id", isAuthorized, handler.UpdateUser)
+	r.DELETE("/user/:id", isAuthorized, handler.DeleteUser)
 }
 
-func authMiddleware(c *gin.Context) {
-	tokenString := requestHeader{}
-	if err := c.ShouldBindHeader(&tokenString); err != nil {
-		c.JSON(200, err)
-	}
-	token, err := jwt.Parse(tokenString.token, func(token *jwt.Token) (interface{}, error) {
-		// Don't forget to validate the alg is what you expect:
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["token"])
+func isAuthorized(c *gin.Context) {
+	if c.Request.Header["Token"] != nil {
+
+		token, err := jwt.Parse(c.Request.Header["Token"][0], func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("There was an error")
+			}
+			return []byte("captainjacksparrowsayshi"), nil
+		})
+
+		if err != nil {
+			c.JSON(400, gin.H{
+				"message": err.Error(),
+			})
+
+			c.Abort()
+			return
 		}
 
-		// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
-		return []byte("ilham"), nil
-	})
-
-	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		fmt.Println(claims["foo"], claims["nbf"])
-		c.Next()
+		if token.Valid {
+			c.Next()
+		}
 	} else {
-		fmt.Println(err)
+
+		c.JSON(400, gin.H{
+			"message": "Token Invalid",
+		})
+
+		c.Abort()
+		return
 	}
+}
+
+// GenerateJWT ...
+func GenerateJWT(user string, c *gin.Context) {
+	token := jwt.New(jwt.SigningMethodHS256)
+	claims := token.Claims.(jwt.MapClaims)
+
+	claims["authorized"] = true
+	claims["client"] = "Elliot Forbes"
+	claims["exp"] = time.Now().Add(time.Minute * 30).Unix()
+
+	tokenString, err := token.SignedString([]byte("captainjacksparrowsayshi"))
+
+	if err != nil {
+		// fmt.Errorf("Something Went Wrong: %s", err.Error())
+		c.JSON(200, gin.H{
+			"message": err.Error(),
+		})
+	}
+
+	c.JSON(200, gin.H{
+		"token": tokenString,
+	})
 }
 
 // Login ...
 func (u *UserHandler) Login(c *gin.Context) {
 	var user domain.User
-	isLogin := u.Conn.Where("username = ? AND password = ?", c.PostForm("username"), c.PostForm("password")).Find(&user)
+	isLogin := u.Conn.Where("username = ? AND password = ?", c.PostForm("username"), c.PostForm("password")).First(&user)
 
-	if isLogin == nil {
-		c.JSON(200, gin.H{
-			"message": "error",
+	if user.Username == "" {
+		fmt.Println(isLogin)
+		c.JSON(400, gin.H{
+			"message": "Periksa Login Anda",
 		})
 
 		c.Abort()
 		return
 	}
 
-	sign := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"foo": "bar",
-		"nbf": time.Date(2015, 10, 10, 12, 0, 0, 0, time.UTC).Unix(),
-	})
-	// sign := jwt.New(jwt.GetSigningMethod("HS256"))
-	token, error := sign.SignedString([]byte("secret"))
-	if error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"message": error.Error(),
-		})
-		c.Abort()
-	}
-
-	c.JSON(200, gin.H{
-		"token": token,
-	})
+	GenerateJWT(user.Username, c)
 }
 
 // GetUser ...
