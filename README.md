@@ -4,8 +4,11 @@
 
 1. buat database mysql (dengan nama terserah)
 2. buka project dan cari file `.env`
-3. isi `MYSQL_DB` dengan nama database yang telah dibuat sebelumnya
-
+3. pengaturan database
+    * `MYSQL_DB` : isi dengan nama database yang telah dibuat sebelumnya
+    * `MYSQL_USER` : isi dengan nama user database
+    * `MYSQL_PASSWORD` : isi dengan password database
+     
 ## Endpoint API
 
 1. `/api/login` (LOGIN)
