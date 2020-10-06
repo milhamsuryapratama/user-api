@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"time"
@@ -102,7 +104,9 @@ func GenerateJWT(user string, c *gin.Context) {
 // Login ...
 func (u *UserHandler) Login(c *gin.Context) {
 	var user domain.User
-	isLogin := u.Conn.Where("username = ? AND password = ?", c.PostForm("username"), c.PostForm("password")).First(&user)
+	hashPassword := md5.New()
+	hashPassword.Write([]byte(c.PostForm("password")))
+	isLogin := u.Conn.Where("username = ? AND password = ?", c.PostForm("username"), hex.EncodeToString(hashPassword.Sum(nil))).First(&user)
 
 	if user.Username == "" {
 		fmt.Println(isLogin)
@@ -149,10 +153,13 @@ func (u *UserHandler) CreateUser(c *gin.Context) {
 	// Set Folder untuk menyimpan filenya
 	path := "photos/" + file.Filename
 
+	hashPassword := md5.New()
+	hashPassword.Write([]byte(c.PostForm("password")))
+
 	user := domain.User{
 		NamaLengkap: c.PostForm("nama_lengkap"),
 		Username:    c.PostForm("username"),
-		Password:    c.PostForm("password"),
+		Password:    hex.EncodeToString(hashPassword.Sum(nil)),
 		Foto:        file.Filename,
 	}
 
@@ -190,10 +197,13 @@ func (u *UserHandler) UpdateUser(c *gin.Context) {
 	// Set Folder untuk menyimpan filenya
 	path := "photos/" + file.Filename
 
+	hashPassword := md5.New()
+	hashPassword.Write([]byte(c.PostForm("password")))
+
 	user := domain.User{
 		NamaLengkap: c.PostForm("nama_lengkap"),
 		Username:    c.PostForm("username"),
-		Password:    c.PostForm("password"),
+		Password:    hex.EncodeToString(hashPassword.Sum(nil)),
 		Foto:        file.Filename,
 	}
 

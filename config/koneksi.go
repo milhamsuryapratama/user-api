@@ -4,6 +4,9 @@ import (
 	"os"
 	"user-api/domain"
 
+	"crypto/md5"
+	"encoding/hex"
+
 	"github.com/joho/godotenv"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -21,10 +24,12 @@ func Connect() *gorm.DB {
 	db.Migrator().DropTable(domain.User{})
 	db.AutoMigrate(domain.User{})
 
+	hashPassword := md5.New()
+	hashPassword.Write([]byte("admin"))
 	user := domain.User{
 		NamaLengkap: "admin",
 		Username:    "admin",
-		Password:    "admin",
+		Password:    hex.EncodeToString(hashPassword.Sum(nil)),
 		Foto:        "makanan.png",
 	}
 
