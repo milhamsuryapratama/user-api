@@ -2,13 +2,9 @@ package helper
 
 // ImageValidation ...
 func ImageValidation(mime string) bool {
-	if mime == "images/jpg" {
+	if mime == "images/jpg" || mime == "image/jpeg" || mime == "image/png" {
 		return true
-	} else if mime == "image/jpeg" {
-		return true
-	} else if mime == "image/png" {
-		return true
-	} else {
-		return false
 	}
+
+	return false
 }
