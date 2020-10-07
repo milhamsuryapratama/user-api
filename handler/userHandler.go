@@ -3,17 +3,13 @@ package handler
 import (
 	"crypto/md5"
 	"encoding/hex"
-	"fmt"
 	"os"
-	"time"
 	"user-api/config"
 	"user-api/domain"
 	"user-api/helper"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"github.com/joho/godotenv"
 	"gorm.io/gorm"
 )
 
@@ -38,68 +34,10 @@ func UserHandlerFunc(r *gin.RouterGroup, user domain.UserEntity) {
 
 	// r.Use(isAuthorized)
 
-	r.GET("/user", isAuthorized, handler.GetUser)
-	r.POST("/user", isAuthorized, handler.CreateUser)
-	r.PUT("/user/:id", isAuthorized, handler.UpdateUser)
-	r.DELETE("/user/:id", isAuthorized, handler.DeleteUser)
-}
-
-func isAuthorized(c *gin.Context) {
-	godotenv.Load()
-	if c.Request.Header["Token"] != nil {
-
-		token, err := jwt.Parse(c.Request.Header["Token"][0], func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("There was an error")
-			}
-			return []byte(os.Getenv("JWT_SECRET")), nil
-		})
-
-		if err != nil {
-			c.JSON(400, gin.H{
-				"message": err.Error(),
-			})
-
-			c.Abort()
-			return
-		}
-
-		if token.Valid {
-			c.Next()
-		}
-	} else {
-
-		c.JSON(400, gin.H{
-			"message": "Token Invalid",
-		})
-
-		c.Abort()
-		return
-	}
-}
-
-// GenerateJWT ...
-func GenerateJWT(user string, c *gin.Context) {
-	godotenv.Load()
-	token := jwt.New(jwt.SigningMethodHS256)
-	claims := token.Claims.(jwt.MapClaims)
-
-	claims["authorized"] = true
-	claims["client"] = c.PostForm("username")
-	claims["exp"] = time.Now().Add(time.Minute * 30).Unix()
-
-	tokenString, err := token.SignedString([]byte(os.Getenv("JWT_SECRET")))
-
-	if err != nil {
-		// fmt.Errorf("Something Went Wrong: %s", err.Error())
-		c.JSON(200, gin.H{
-			"message": err.Error(),
-		})
-	}
-
-	c.JSON(200, gin.H{
-		"token": tokenString,
-	})
+	r.GET("/user", helper.IsAuthorized, handler.GetUser)
+	r.POST("/user", helper.IsAuthorized, handler.CreateUser)
+	r.PUT("/user/:id", helper.IsAuthorized, handler.UpdateUser)
+	r.DELETE("/user/:id", helper.IsAuthorized, handler.DeleteUser)
 }
 
 // Login ...
@@ -109,8 +47,8 @@ func (u *UserHandler) Login(c *gin.Context) {
 	hashPassword.Write([]byte(c.PostForm("password")))
 	isLogin := u.Conn.Where("username = ? AND password = ?", c.PostForm("username"), hex.EncodeToString(hashPassword.Sum(nil))).First(&user)
 
-	if user.Username == "" {
-		fmt.Println(isLogin)
+	if isLogin.Error != nil {
+		// fmt.Println(isLogin)
 		c.JSON(400, gin.H{
 			"message": "Periksa Login Anda",
 		})
@@ -119,7 +57,7 @@ func (u *UserHandler) Login(c *gin.Context) {
 		return
 	}
 
-	GenerateJWT(user.Username, c)
+	helper.GenerateJWT(user.Username, c)
 }
 
 // GetUser ...
@@ -132,6 +70,15 @@ func (u *UserHandler) GetUser(c *gin.Context) {
 
 // CreateUser ...
 func (u *UserHandler) CreateUser(c *gin.Context) {
+
+	if c.Request.Method != "POST" {
+		c.JSON(204, gin.H{
+			"message": "Method not allowed",
+		})
+		c.Abort()
+		return
+	}
+
 	file, null := c.FormFile("foto")
 
 	if null != nil {
@@ -186,8 +133,22 @@ func (u *UserHandler) CreateUser(c *gin.Context) {
 
 	errs := validator.New().Struct(user)
 	if errs != nil {
+		var formError = map[string]string{}
+		for _, err := range errs.(validator.ValidationErrors) {
+			formError[err.Field()] = err.Tag()
+			// fmt.Println(err.Namespace()) // can differ when a custom TagNameFunc is registered or
+			// fmt.Println(err.Field())     // by passing alt name to ReportError like below
+			// fmt.Println(err.StructNamespace())
+			// fmt.Println(err.StructField())
+			// fmt.Println(err.Tag())
+			// fmt.Println(err.ActualTag())
+			// fmt.Println(err.Kind())
+			// fmt.Println(err.Type())
+			// fmt.Println(err.Value())
+			// fmt.Println(err.)
+		}
 		c.JSON(400, gin.H{
-			"error": errs.Error(),
+			"error": formError,
 		})
 
 		c.Abort()
@@ -272,6 +233,14 @@ func (u *UserHandler) UpdateUser(c *gin.Context) {
 
 // DeleteUser ...
 func (u *UserHandler) DeleteUser(c *gin.Context) {
+	if c.Request.Method != "DELETE" {
+		c.JSON(204, gin.H{
+			"message": "Method not allowed",
+		})
+		c.Abort()
+		return
+	}
+
 	isDeleted, _ := u.UserEntity.Delete(c.Param("id"))
 	if isDeleted.NamaLengkap == "" {
 		c.JSON(400, gin.H{
