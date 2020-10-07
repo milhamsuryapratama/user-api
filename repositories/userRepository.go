@@ -33,7 +33,10 @@ func (r *UserRepository) Create(usr domain.User) (user domain.User, err error) {
 // Update ...
 func (r *UserRepository) Update(id string, usr domain.User) (user domain.User, err error) {
 	var us domain.User
-	r.Conn.First(&us, id)
+	m := r.Conn.First(&us, id)
+	if m.Error != nil {
+		return us, m.Error
+	}
 	us.NamaLengkap = usr.NamaLengkap
 	us.Username = usr.Username
 	us.Password = usr.Password
@@ -45,16 +48,21 @@ func (r *UserRepository) Update(id string, usr domain.User) (user domain.User, e
 // Delete ...
 func (r *UserRepository) Delete(id string) (user domain.User, err error) {
 	var usr domain.User
-	r.Conn.First(&usr, id)
-	if usr.NamaLengkap != "" {
+	m := r.Conn.First(&usr, id)
+	if m.Error == nil {
 		r.Conn.Delete(&usr, id)
+		return usr, nil
 	}
-	return usr, nil
+
+	return usr, m.Error
 }
 
 // Show ...
 func (r *UserRepository) Show(id string) (user domain.User, err error) {
 	var usr domain.User
-	r.Conn.First(&usr, id)
+	m := r.Conn.First(&usr, id)
+	if m.Error != nil {
+		return usr, m.Error
+	}
 	return usr, nil
 }
