@@ -165,10 +165,10 @@ func (u *UserHandler) CreateUser(c *gin.Context) {
 
 // UpdateUser ...
 func (u *UserHandler) UpdateUser(c *gin.Context) {
-	oldUser, _ := u.UserEntity.Show(c.Param("id"))
-	if oldUser.NamaLengkap == "" {
+	oldUser, err := u.UserEntity.Show(c.Param("id"))
+	if err != nil {
 		c.JSON(400, gin.H{
-			"message": "User not found",
+			"message": err.Error(),
 		})
 		c.Abort()
 		return
@@ -213,7 +213,7 @@ func (u *UserHandler) UpdateUser(c *gin.Context) {
 	errs := validator.New().Struct(user)
 	if errs != nil {
 		c.JSON(400, gin.H{
-			"error": errs.Error(),
+			"message": errs.Error(),
 		})
 
 		c.Abort()
@@ -241,10 +241,10 @@ func (u *UserHandler) DeleteUser(c *gin.Context) {
 		return
 	}
 
-	isDeleted, _ := u.UserEntity.Delete(c.Param("id"))
-	if isDeleted.NamaLengkap == "" {
+	isDeleted, err := u.UserEntity.Delete(c.Param("id"))
+	if err != nil {
 		c.JSON(400, gin.H{
-			"message": "User not found",
+			"message": err.Error(),
 		})
 		c.Abort()
 		return
