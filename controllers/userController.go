@@ -40,17 +40,17 @@ func (k *UserEntity) Create(usr domain.User) (user domain.User, err error) {
 // Update ...
 func (k *UserEntity) Update(id string, usr domain.User) (user domain.User, err error) {
 	user, err = k.userRepo.Update(id, usr)
-	return user, err
+	return
 }
 
 // Delete ...
 func (k *UserEntity) Delete(id string) (user domain.User, err error) {
 	user, err = k.userRepo.Delete(id)
-	return user, err
+	return
 }
 
 // Show ...
 func (k *UserEntity) Show(id string) (user domain.User, err error) {
 	user, err = k.userRepo.Show(id)
-	return user, err
+	return
 }
