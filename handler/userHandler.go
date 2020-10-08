@@ -10,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"github.com/joho/godotenv"
 	"gorm.io/gorm"
 )
 
@@ -62,9 +63,21 @@ func (u *UserHandler) Login(c *gin.Context) {
 
 // GetUser ...
 func (u *UserHandler) GetUser(c *gin.Context) {
+	godotenv.Load()
 	users, _ := u.UserEntity.Get(c)
+	user := []domain.User{}
+	for i := 0; i < len(users); i++ {
+		usr := domain.User{
+			NamaLengkap: users[i].NamaLengkap,
+			Username:    users[i].Username,
+			Password:    users[i].Password,
+			Foto:        os.Getenv("BASE_URL") + users[i].Foto,
+		}
+		user = append(user, usr)
+	}
+
 	c.JSON(200, gin.H{
-		"data": users,
+		"data": user,
 	})
 }
 
